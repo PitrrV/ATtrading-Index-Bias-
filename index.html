@@ -1,363 +1,292 @@
 <!doctype html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AT Trading – Daily Bias Index V10</title>
-  <link rel="stylesheet" href="styles.css" />
-  <style>
-    /* V10 additions */
-    .data-mode-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 900;
-      letter-spacing: .1em;
-    }
-    .data-mode-badge.demo {
-      background: rgba(255,196,46,.18);
-      border: 1px solid rgba(255,196,46,.5);
-      color: #ffc42e;
-    }
-    .data-mode-badge.live {
-      background: rgba(128,255,56,.16);
-      border: 1px solid rgba(128,255,56,.45);
-      color: #80ff38;
-    }
-    #freezeBanner { display: none; margin-bottom: 12px; }
-    .freeze-alert {
-      padding: 12px 18px;
-      border-radius: 14px;
-      font-size: 14px;
-      font-weight: 600;
-    }
-    .freeze-alert.warn {
-      background: rgba(255,196,46,.12);
-      border: 1px solid rgba(255,196,46,.5);
-      color: #ffc42e;
-    }
-    .freeze-alert.released {
-      background: rgba(36,243,108,.1);
-      border: 1px solid rgba(36,243,108,.4);
-      color: #80ff38;
-    }
-    .history-grid {
-      display: grid;
-      grid-template-columns: repeat(3,1fr);
-      gap: 10px;
-      margin-top: 12px;
-    }
-    .history-card {
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .history-chart { margin-bottom: 8px; }
-    .history-chart svg { width: 100%; height: 160px; display: block; }
-    .empty-history { color: var(--muted); padding: 14px; font-size: 13px; }
-    .history-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    .history-actions button {
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color: var(--text);
-      border-radius: 11px;
-      padding: 9px 14px;
-      cursor: pointer;
-      font-weight: 700;
-    }
-    .mini-note { color: var(--muted); font-size: 11px; }
-
-    /* Chart Analysis styles */
-    .ca-panel { margin-top: 24px; }
-    .ca-layout { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; }
-    .ca-controls { display: flex; flex-direction: column; gap: 12px; }
-    .ca-dropzone { border: 2px dashed var(--line); border-radius: 12px; min-height: 120px; padding: 20px 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: border-color .2s; overflow: hidden; }
-    .ca-dropzone:hover, .ca-dropzone.drag { border-color: var(--green); background: rgba(128,255,56,.04); }
-    .ca-drop-hint { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; color: var(--muted); font-size: 12px; }
-    .ca-params { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .ca-params label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
-    .ca-params select { width: 100%; background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 8px; color: var(--text); padding: 7px 9px; font-size: 12px; cursor: pointer; }
-    .ca-analyze-btn { padding: 12px; border-radius: 10px; border: none; cursor: pointer; background: linear-gradient(135deg, var(--green), #36c94b); color: #041007; font-size: 13px; font-weight: 900; letter-spacing: .03em; box-shadow: 0 0 22px rgba(128,255,56,.28); transition: all .2s; }
-    .ca-analyze-btn:disabled { background: rgba(255,255,255,.06); color: var(--muted); box-shadow: none; cursor: not-allowed; }
-    .ca-results { display: flex; flex-direction: column; gap: 12px; }
-    .ca-empty { padding: 40px; text-align: center; border: 1px solid var(--line); border-radius: 16px; color: var(--muted); }
-    .ca-empty p { font-size: 12px; margin: 8px 0 16px; line-height: 1.6; }
-    .ca-tags { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
-    .ca-tags span { background: rgba(128,255,56,.06); border: 1px solid rgba(128,255,56,.14); color: rgba(128,255,56,.5); border-radius: 5px; padding: 2px 7px; font-size: 9px; }
-    .ca-loading { display: flex; align-items: center; gap: 16px; padding: 40px; border: 1px solid var(--line); border-radius: 16px; }
-    .ca-spinner { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); border-top-color: var(--green); animation: spin 1s linear infinite; flex-shrink: 0; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .ca-card { background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
-    .ca-card h4 { margin: 0 0 10px; font-size: 13px; }
-    .ca-card p { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 6px 0; }
-    .ca-header-card { display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
-    .ca-bias-box { border: 1px solid; border-radius: 10px; padding: 10px 14px; text-align: center; min-width: 80px; display: flex; flex-direction: column; gap: 2px; }
-    .ca-bias-box small { font-size: 9px; color: var(--muted); letter-spacing: .06em; }
-    .ca-conf-box { background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; text-align: center; display: flex; flex-direction: column; gap: 2px; min-width: 60px; }
-    .ca-conf-box small { font-size: 9px; color: var(--muted); }
-    .ca-summary-box { flex: 1; min-width: 160px; }
-    .ca-pills { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px; }
-    .ca-pill { border-radius: 5px; padding: 2px 7px; font-size: 10px; font-weight: 700; }
-    .bull-pill { background: rgba(128,255,56,.1); border: 1px solid rgba(128,255,56,.3); color: var(--green); }
-    .bear-pill { background: rgba(255,67,67,.1); border: 1px solid rgba(255,67,67,.3); color: var(--red); }
-    .neut-pill { background: rgba(255,196,46,.1); border: 1px solid rgba(255,196,46,.3); color: #ffc42e; }
-    .info-pill { background: rgba(53,167,255,.1); border: 1px solid rgba(53,167,255,.3); color: #35a7ff; }
-    .high-pill { background: rgba(255,67,67,.1); border: 1px solid rgba(255,67,67,.3); color: var(--red); }
-    .med-pill  { background: rgba(255,196,46,.1); border: 1px solid rgba(255,196,46,.3); color: #ffc42e; }
-    .model-pill { background: rgba(255,255,255,.06); border: 1px solid var(--line); color: var(--muted); }
-    .ca-confluence { font-size: 11px; color: #35a7ff; background: rgba(53,167,255,.07); border: 1px solid rgba(53,167,255,.2); border-radius: 7px; padding: 6px 10px; margin-top: 6px; }
-    .ca-warn-bar { background: rgba(255,196,46,.07); border: 1px solid rgba(255,196,46,.25); border-radius: 10px; padding: 8px 12px; font-size: 11px; color: #ffc42e; }
-    .ca-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .ca-bos { background: rgba(53,167,255,.07); border: 1px solid rgba(53,167,255,.2); border-radius: 7px; padding: 6px 9px; font-size: 11px; color: #58a6ff; margin: 6px 0; }
-    .ca-swing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 5px; margin-top: 8px; }
-    .ca-swing { border-radius: 7px; padding: 5px; text-align: center; }
-    .ca-swing small { display: block; font-size: 9px; font-weight: 700; }
-    .ca-swing b { font-size: 15px; }
-    .ca-swing-bull { background: rgba(128,255,56,.07); border: 1px solid rgba(128,255,56,.2); color: var(--green); }
-    .ca-swing-bear { background: rgba(255,67,67,.07); border: 1px solid rgba(255,67,67,.2); color: var(--red); }
-    .ca-ta-row { margin-bottom: 8px; }
-    .ca-ta-row small { display: block; font-size: 9px; color: var(--muted); letter-spacing: .06em; font-weight: 700; margin-bottom: 2px; }
-    .ca-ta-row span { font-size: 11px; color: #c0d0e0; line-height: 1.5; }
-    .ca-level { border-radius: 0 7px 7px 0; padding: 6px 9px; margin-bottom: 5px; font-size: 11px; color: #c0d0e0; }
-    .ca-level small { display: block; font-size: 9px; color: var(--muted); margin-top: 2px; }
-    .ca-level-top { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 9px; font-weight: 700; }
-    .ca-res { background: rgba(255,67,67,.04); border: 1px solid rgba(255,67,67,.18); border-left: 3px solid rgba(255,67,67,.6); }
-    .ca-res .ca-level-top { color: var(--red); }
-    .ca-sup { background: rgba(128,255,56,.04); border: 1px solid rgba(128,255,56,.18); border-left: 3px solid rgba(128,255,56,.6); }
-    .ca-sup .ca-level-top { color: var(--green); }
-    .ca-pd { font-size: 11px; color: #35a7ff; margin-bottom: 10px; }
-    .ca-smc-section { margin-top: 10px; }
-    .ca-smc-section > b { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; }
-    .ca-smc-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 5px; font-size: 11px; color: #c0d0e0; }
-    .ca-smc-row small { color: var(--muted); font-size: 10px; }
-    .ca-entry-card { border-color: rgba(128,255,56,.2); }
-    .ca-entry-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-    .ca-entry-header h4 { margin: 0; }
-    .ca-entry-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-    .ca-entry-row small { display: block; font-size: 9px; color: var(--muted); letter-spacing: .06em; font-weight: 700; margin-bottom: 2px; }
-    .ca-entry-row span { font-size: 12px; color: #c0d0e0; }
-    .ca-confluence-list { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
-    .ca-confluence-list span { background: rgba(255,255,255,.05); border-radius: 4px; padding: 1px 6px; margin: 2px; display: inline-block; color: #c0d0e0; }
-    .ca-invalidation { font-size: 11px; color: #ffc42e; background: rgba(255,196,46,.07); border: 1px solid rgba(255,196,46,.2); border-radius: 7px; padding: 7px 10px; }
-    @media (max-width: 900px) { .ca-layout { grid-template-columns: 1fr; } .ca-grid-2 { grid-template-columns: 1fr; } }
-  </style>
+  <link rel="stylesheet" href="styles.css"/>
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-logo" aria-label="AT Trading logo">
-          <span class="at-a">A</span><span class="at-t">T</span><span class="bull-mark">♉</span>
-        </div>
-        <div>
-          <h1>AT Trading</h1>
-          <span>Daily Bias Index • V10</span>
-        </div>
+<div class="app-shell">
+
+  <!-- ── TOP HEADER ─────────────────────────────── -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-logo">AT</div>
+      <div>
+        <div class="brand-name">AT Trading</div>
+        <div class="brand-ver">BIAS INDEX V10</div>
       </div>
-      <nav>
-        <button class="active">Dashboard</button>
-        <button>US100</button>
-        <button>US500</button>
-        <button>US30</button>
-        <button>Premarket Flow</button>
-        <button>Fundamenty</button>
-        <button>Týdenní Outlook</button>
-        <button id="apiNavBtn">API Settings</button>
-      </nav>
-      <div class="side-card">
-        <small>Baseline</small>
-        <strong>14:00 CZ</strong>
-        <span>= 08:00 ET · aktivní premarket</span>
-      </div>
-      <div class="side-card green">
-        <small>Data režim</small>
-        <strong id="dataModeLabel">DEMO</strong>
-        <span id="dataModeBadge" class="data-mode-badge demo">⚠ DEMO</span>
-      </div>
-    </aside>
+    </div>
 
-    <main>
-      <header class="topbar">
-        <div>
-          <div class="product-kicker">AT Trading – Daily Bias Index</div>
-          <h2>Daily Bias Decision Engine</h2>
-          <p>Premarket flow · Top stocks · Fundamenty · Sector ETFs · VIX kontext</p>
-        </div>
-        <div class="status-row">
-          <span class="market-open">● US Pre-market</span>
-          <span id="lastUpdate">Last update --:--:--</span>
-          <button id="baselineBtn">Set 14:00 baseline</button>
-          <button id="apiBtn">API Settings</button>
-          <button id="refreshBtn">Refresh</button>
-        </div>
-      </header>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-tab" data-tab="flow">Premarket Flow</button>
+      <button class="nav-tab" data-tab="stocks">Stocks</button>
+      <button class="nav-tab" data-tab="fundamentals">Fundamenty</button>
+      <button class="nav-tab" data-tab="plan">Trade Plan</button>
+      <button class="nav-tab" data-tab="ai">AI Analýza</button>
+      <button class="nav-tab" data-tab="history">Historie</button>
+    </nav>
 
-      <!-- Fundamental freeze / post-release banner -->
-      <div id="freezeBanner"></div>
+    <div class="header-right">
+      <span id="lastUpdate" class="hdr-status">--:--:--</span>
+      <span id="dataModeBadge" class="data-mode-badge demo">⚠ DEMO</span>
+      <button class="btn" id="baselineBtn">Set 14:00</button>
+      <button class="btn" id="apiBtn">API</button>
+      <button class="btn btn-primary" id="refreshBtn">↻ Refresh</button>
+    </div>
+  </header>
 
-      <section class="primary-decision" id="primaryDecision"></section>
-      <section class="index-grid" id="indexGrid"></section>
+  <!-- ── MAIN CONTENT ────────────────────────────── -->
+  <main class="app-main">
 
-      <section class="panel charts-command">
-        <div class="panel-head">
-          <div>
-            <h3>Premarket Command Center</h3>
-            <p>Momentum od 14:00 CZ. Sílí, slábne, nebo jen chop?</p>
+    <!-- Freeze / Release banner (always visible) -->
+    <div id="freezeBanner"></div>
+
+    <!-- ══ TAB: DASHBOARD ══════════════════════════ -->
+    <section class="tab-section active" id="tab-dashboard">
+
+      <!-- 3 index tiles -->
+      <div class="index-bar" id="indexBar"></div>
+
+      <!-- Primary decision cards -->
+      <div class="decision-grid" id="primaryDecision"></div>
+
+      <!-- Breakdown + Trade Plan -->
+      <div class="content-2col">
+        <div class="panel">
+          <div class="panel-head">
+            <div><h3>Bias Breakdown</h3><p>Proč systém rozhodl daný směr.</p></div>
+            <span class="pill">7 modulů · V5</span>
           </div>
-          <span class="pill green-pill">Baseline 14:00 CZ · Live flow</span>
+          <div id="breakdown"></div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+            <div class="weight-row" style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">
+              <span>Volume modifier</span><b style="color:var(--muted)">±score</b>
+            </div>
+            <div class="weight-row" style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em">
+              <span>VIX modifier</span><b style="color:var(--muted)">±score</b>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 style="margin-bottom:14px">Trading Plan</h3>
+          <div id="tradePlan"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ TAB: PREMARKET FLOW ═════════════════════ -->
+    <section class="tab-section" id="tab-flow">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>Premarket Command Center</h3><p>Momentum od baseline 14:00 CZ · sílí nebo slábne?</p></div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="pill green-pill">Live flow</span>
+          </div>
         </div>
         <div class="chart-tabs" id="chartTabs"></div>
-        <div class="main-chart" id="multiFlowChart"></div>
+        <div class="chart-wrap" id="multiFlowChart"></div>
         <div class="mini-charts" id="miniCharts"></div>
-      </section>
+      </div>
 
-      <section class="panel history-panel" id="historyPanel"></section>
-
-      <section class="content-grid">
-        <div class="stack">
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h3>Bias Breakdown</h3>
-                <p>Proč systém vyhodnotil daný směr.</p>
-              </div>
-              <span class="pill">Weighted · 5 modulů</span>
-            </div>
-            <div id="breakdown"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h3>Premarket Flow od 14:00 CZ</h3>
-                <p>Edge: slábne / sílí / fake move.</p>
-              </div>
-              <span id="flowBadge" class="pill warn">Analyzing</span>
-            </div>
-            <div class="flow-chart" id="flowChart"></div>
-            <div id="flowRead" class="flow-read"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h3>Top Stocks Impact</h3>
-                <p>Váhovaný dopad akcií na index.</p>
-              </div>
-              <span class="pill">Weighted names · baseline 14:00</span>
-            </div>
-            <div id="stocksTable"></div>
-          </section>
-        </div>
-
-        <div class="stack right">
-          <section class="panel scenario">
-            <h3>Trading Plan</h3>
-            <div id="tradePlan"></div>
-          </section>
-
-          <section class="panel">
-            <h3>Fundamental Risk Today</h3>
-            <div id="fundamentalBox"></div>
-          </section>
-
-          <section class="panel">
-            <h3>Weekly Outlook</h3>
-            <div id="weeklyOutlook"></div>
-          </section>
-
-          <section class="panel algorithm">
-            <h3>Algorithm Weights V5</h3>
-            <div class="weight-row"><span>Premarket Score</span><b>28%</b></div>
-            <div class="weight-row"><span>Fundamenty (beat/miss)</span><b>20%</b></div>
-            <div class="weight-row"><span>Gap / ATR analýza</span><b>15%</b></div>
-            <div class="weight-row"><span>Momentum od 14:00</span><b>15%</b></div>
-            <div class="weight-row"><span>Top Stocks Dominance</span><b>10%</b></div>
-            <div class="weight-row"><span>Prev Session Context</span><b>8%</b></div>
-            <div class="weight-row"><span>Sector ETFs</span><b>4%</b></div>
-            <div class="weight-row" style="border-top:1px solid rgba(128,255,56,.2);margin-top:6px;padding-top:12px"><span>VIX modifier</span><b style="color:var(--muted)">±score</b></div>
-          </section>
-        </div>
-      </section>
-
-      <!-- CHART ANALYSIS -->
-      <section class="panel ca-panel">
+      <div class="panel" style="margin-top:14px">
         <div class="panel-head">
-          <div><h3>📊 AI Chart Analysis</h3><p>Nahrej screenshot grafu — AI identifikuje strukturu, OB, FVG, liquidity a navrhne setup s&nbsp;SL/TP.</p></div>
+          <div><h3>Flow detail — <span id="flowIndexLabel">US100</span></h3><p>Baseline 14:00 CZ · Edge: fade / strength</p></div>
+          <span id="flowBadge" class="pill">Analyzing</span>
+        </div>
+        <div class="chart-wrap" style="margin-bottom:12px">
+          <div class="flow-chart" id="flowChart"></div>
+        </div>
+        <div id="flowRead" class="flow-read"></div>
+      </div>
+    </section>
+
+    <!-- ══ TAB: STOCKS ═════════════════════════════ -->
+    <section class="tab-section" id="tab-stocks">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>Top Stocks Impact</h3><p>Váhovaný dopad akcií · baseline 14:00 CZ · volume conviction</p></div>
+          <div class="chart-tabs" id="stocksTabs" style="margin:0"></div>
+        </div>
+        <div id="stocksTable"></div>
+      </div>
+    </section>
+
+    <!-- ══ TAB: FUNDAMENTY ═════════════════════════ -->
+    <section class="tab-section" id="tab-fundamentals">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>Fundamental Risk Today</h3><p>Filtr: CPI · PCE · NFP · FOMC · GDP · ISM · Jobless Claims</p></div>
+          <span class="pill green-pill">Pouze HIGH + důležité MEDIUM</span>
+        </div>
+        <div id="fundamentalBox"></div>
+      </div>
+    </section>
+
+    <!-- ══ TAB: TRADE PLAN ═════════════════════════ -->
+    <section class="tab-section" id="tab-plan">
+      <div class="content-2col">
+        <div>
+          <div class="panel">
+            <h3 style="margin-bottom:14px">Trading Plan — <span id="planIndexLabel">US100</span></h3>
+            <div id="tradePlanFull"></div>
+          </div>
+          <div class="panel" style="margin-top:14px">
+            <h3 style="margin-bottom:14px">Weekly Outlook</h3>
+            <div id="weeklyOutlook"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3 style="margin-bottom:14px">Algorithm Weights V5</h3>
+          <div class="weight-row"><span>Premarket Score</span><b>28%</b></div>
+          <div class="weight-row"><span>Fundamenty (beat/miss)</span><b>20%</b></div>
+          <div class="weight-row"><span>Gap / ATR analýza</span><b>15%</b></div>
+          <div class="weight-row"><span>Momentum od 14:00</span><b>15%</b></div>
+          <div class="weight-row"><span>Top Stocks Dominance</span><b>10%</b></div>
+          <div class="weight-row"><span>Prev Session Context</span><b>8%</b></div>
+          <div class="weight-row"><span>Sector ETFs</span><b>4%</b></div>
+          <div class="weight-row" style="border-top:1px solid rgba(34,232,106,.15);margin-top:4px;padding-top:10px">
+            <span>Volume Modifier</span><b style="color:var(--muted)">±score</b>
+          </div>
+          <div class="weight-row">
+            <span>VIX Modifier</span><b style="color:var(--muted)">±score</b>
+          </div>
+          <div style="margin-top:16px;padding:12px;background:rgba(34,232,106,.04);border:1px solid rgba(34,232,106,.15);border-radius:10px;font-size:12px;color:var(--muted);line-height:1.6">
+            <b style="color:var(--text)">Baseline:</b> 14:00 CZ = 08:00 ET<br/>
+            <b style="color:var(--text)">Kalendář:</b> Pouze CPI, NFP, FOMC, GDP, PCE, ISM, PPI, Jobless Claims<br/>
+            <b style="color:var(--text)">Freeze:</b> HIGH event do 45 min → bias zmražen
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ TAB: AI ANALÝZA ═════════════════════════ -->
+    <section class="tab-section" id="tab-ai">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h3>📊 AI Chart Analysis</h3><p>Nahrej screenshot grafu — AI identifikuje strukturu, OB, FVG, Liquidity, Entry setup.</p></div>
           <span class="pill green-pill">ICT · SMC · Classical TA · Algo Confluence</span>
         </div>
         <div class="ca-layout">
           <div class="ca-controls">
             <div class="ca-dropzone" id="caDropZone">
               <img id="caPreview" style="display:none;width:100%;border-radius:8px" alt="chart"/>
-              <div class="ca-drop-hint"><div style="font-size:28px">📈</div><span>Přetáhni screenshot<br/>nebo klikni pro výběr</span><small>PNG · JPG · WebP · TradingView / MT5</small></div>
+              <div class="ca-drop-hint">
+                <div style="font-size:28px">📈</div>
+                <span>Přetáhni screenshot<br/>nebo klikni pro výběr</span>
+                <small>PNG · JPG · WebP · TradingView / MT5</small>
+              </div>
               <input type="file" id="caFileInput" accept="image/*" style="display:none"/>
             </div>
-            <button id="caRemoveImg" style="display:none;background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;margin-top:4px">✕ Odebrat</button>
+            <button id="caRemoveImg" style="display:none;background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;margin-top:2px">✕ Odebrat</button>
             <div class="ca-params">
-              <div><label>INDEX</label><select id="caIndexSelect"><option value="US100">US100 / NQ100</option><option value="US500">US500 / SPX</option><option value="US30">US30 / DJ30</option></select></div>
-              <div><label>TIMEFRAME</label><select id="caTfSelect"><option>1m</option><option>5m</option><option selected>15m</option><option>1H</option><option>4H</option><option>Daily</option></select></div>
+              <div>
+                <label>INDEX</label>
+                <select id="caIndexSelect">
+                  <option value="US100">US100 / NQ100</option>
+                  <option value="US500">US500 / SPX</option>
+                  <option value="US30">US30 / DJ30</option>
+                </select>
+              </div>
+              <div>
+                <label>TIMEFRAME</label>
+                <select id="caTfSelect">
+                  <option>1m</option><option>5m</option><option selected>15m</option>
+                  <option>1H</option><option>4H</option><option>Daily</option>
+                </select>
+              </div>
             </div>
-            <div><label style="font-size:10px;color:var(--muted)">POZNÁMKY PRO AI (volitelné)</label><textarea id="caNotes" placeholder="Čekám na retest 21400, news ve 14:30..." style="width:100%;min-height:54px;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:8px 10px;font-size:12px;resize:vertical;font-family:inherit;box-sizing:border-box"></textarea></div>
+            <div>
+              <label style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:4px">Poznámky pro AI</label>
+              <textarea id="caNotes" placeholder="Čekám na retest, news ve 14:30..." style="width:100%;min-height:52px;background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text);padding:8px 10px;font-size:12px;resize:vertical;font-family:var(--font-t)"></textarea>
+            </div>
             <button id="caAnalyzeBtn" class="ca-analyze-btn">⚡ SPUSTIT AI ANALÝZU</button>
-            <div id="caError" style="display:none;background:rgba(255,67,67,.08);border:1px solid rgba(255,67,67,.3);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--red)"></div>
+            <div id="caError" style="display:none;background:rgba(255,63,63,.07);border:1px solid rgba(255,63,63,.28);border-radius:var(--r-sm);padding:8px 12px;font-size:12px;color:var(--red)"></div>
           </div>
           <div class="ca-results" id="caResult"></div>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </section>
 
-  <!-- API Modal -->
-  <div class="modal-backdrop" id="apiModal">
-    <div class="modal">
-      <div class="modal-head">
-        <h3>API Settings</h3>
-        <button id="closeApiModal">×</button>
-      </div>
-      <p class="mini">Finnhub free tier: stocks + ekonomický kalendář. Futures ceny přes Yahoo Finance (automaticky, bez klíče).</p>
-      <label>Finnhub API key</label>
-      <input id="finnhubKey" placeholder="vlož token z finnhub.io" />
-      <div class="settings-actions">
-        <button id="saveApiKey">Uložit</button>
-        <button id="clearApiKey">Smazat klíč</button>
-        <button id="testApiKey">Test live fetch</button>
-      </div>
-      <div id="apiStatus" class="api-status">Demo mode. Vlož Finnhub API key pro live stocks + kalendář.</div>
-      <hr />
-      <p class="mini"><b>Zdarma:</b> Futures NQ/ES/YM z Yahoo Finance (real-time). Stocks + kalendář z Finnhub free (může mít delay).</p>
-      <hr />
-      <label>🤖 OpenRouter API klíč <b style="color:var(--green)">✓ ZDARMA</b></label>
-      <p class="mini" style="margin-bottom:6px">
-        1. Jdi na <a href="https://openrouter.ai" target="_blank" style="color:#35a7ff">openrouter.ai</a> → Sign up (Google účet) → <b>Keys</b> → <b>Create Key</b><br/>
-        2. Zkopíruj klíč sem (začíná <b>sk-or-v1-...</b>)
-      </p>
-      <input id="orKey" placeholder="sk-or-v1-..." />
-      <div style="margin-top:10px">
-        <label style="font-size:11px;color:var(--muted)">Model pro AI analýzu <span style="color:var(--muted)">(nechej prázdné = auto)</span></label>
-        <p class="mini" style="margin-bottom:5px">Aktuální free modely: <a href="https://openrouter.ai/models?q=%3Afree&supported_parameters=vision" target="_blank" style="color:#35a7ff">openrouter.ai/models (filtr: free + vision)</a></p>
-        <select id="orModel" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:8px 10px;font-size:12px;cursor:pointer;margin-bottom:8px">
-          <option value="">🔄 Auto — stáhne aktuální live seznam z OpenRouter</option>
-          <option value="meta-llama/llama-3.2-11b-vision-instruct:free">llama-3.2-11b-vision (Llama Vision)</option>
-          <option value="meta-llama/llama-3.2-90b-vision-instruct:free">llama-3.2-90b-vision (Llama Vision velký)</option>
-          <option value="qwen/qwen-2-vl-7b-instruct:free">qwen-2-vl-7b (Qwen Vision)</option>
-          <option value="meta-llama/llama-4-maverick:free">llama-4-maverick (zkus pokud auto selže)</option>
-          <option value="meta-llama/llama-4-scout:free">llama-4-scout (zkus pokud auto selže)</option>
-          <option value="google/gemini-2.0-flash-exp:free">gemini-2.0-flash-exp (Google Vision)</option>
-        </select>
-      </div>
-      <div class="settings-actions">
-        <button id="saveOrKey">Uložit OR nastavení</button>
-      </div>
-      <div id="orKeyStatus" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+    <!-- ══ TAB: HISTORIE ════════════════════════════ -->
+    <section class="tab-section" id="tab-history">
+      <div class="panel" id="historyPanel"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── API MODAL ─────────────────────────────────── -->
+<div class="modal-backdrop" id="apiModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>API Settings</h3>
+      <button id="closeApiModal">×</button>
     </div>
+    <p class="mini">Futures NQ/ES/YM z Yahoo Finance — automaticky, bez klíče.</p>
+    <label>Finnhub API key <span style="color:var(--muted);font-weight:400">(stocks + kalendář)</span></label>
+    <input id="finnhubKey" placeholder="Vlož token z finnhub.io"/>
+    <div class="settings-actions">
+      <button id="saveApiKey">Uložit</button>
+      <button id="clearApiKey">Smazat klíč</button>
+      <button id="testApiKey">Test live fetch</button>
+    </div>
+    <div id="apiStatus" class="api-status">Demo mode.</div>
+    <hr/>
+    <label>OpenRouter API klíč <b style="color:var(--green)">✓ ZDARMA</b></label>
+    <p class="mini" style="margin-bottom:6px">
+      1. <a href="https://openrouter.ai" target="_blank" style="color:var(--blue)">openrouter.ai</a> → Sign up → Keys → Create Key<br/>
+      2. Zkopíruj klíč sem (začíná sk-or-v1-...)
+    </p>
+    <input id="orKey" placeholder="sk-or-v1-..."/>
+    <div style="margin-top:10px">
+      <label style="font-size:11px;color:var(--muted)">Model <span style="font-weight:400">(nechej prázdné = auto)</span></label>
+      <p class="mini" style="margin-bottom:5px"><a href="https://openrouter.ai/models?q=%3Afree&supported_parameters=vision" target="_blank" style="color:var(--blue)">openrouter.ai/models (free + vision)</a></p>
+      <select id="orModel" style="width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:var(--r-sm);color:var(--text);padding:8px 10px;font-size:12px;margin-bottom:8px;font-family:var(--font-t)">
+        <option value="">🔄 Auto — live seznam z OpenRouter</option>
+        <option value="meta-llama/llama-3.2-11b-vision-instruct:free">llama-3.2-11b-vision</option>
+        <option value="meta-llama/llama-3.2-90b-vision-instruct:free">llama-3.2-90b-vision</option>
+        <option value="qwen/qwen-2-vl-7b-instruct:free">qwen-2-vl-7b</option>
+        <option value="meta-llama/llama-4-maverick:free">llama-4-maverick</option>
+        <option value="meta-llama/llama-4-scout:free">llama-4-scout</option>
+        <option value="google/gemini-2.0-flash-exp:free">gemini-2.0-flash-exp</option>
+      </select>
+    </div>
+    <div class="settings-actions">
+      <button id="saveOrKey">Uložit OR nastavení</button>
+    </div>
+    <div id="orKeyStatus" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
   </div>
+</div>
 
-  <script src="bias-engine.js"></script>
-  <script src="app.js"></script>
+<script src="bias-engine.js"></script>
+<script src="app.js"></script>
+<script>
+// ── Tab navigation ──────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    const section = document.getElementById('tab-' + btn.dataset.tab);
+    if (section) section.classList.add('active');
+    // Sync trade plan / stocks tabs label on switch
+    if (btn.dataset.tab === 'plan' || btn.dataset.tab === 'stocks') {
+      window.renderAll && window.renderAll(false);
+    }
+  });
+});
+
+// ── Index selector sync (click on index tile → update selected in app.js) ──
+document.getElementById('indexBar')?.addEventListener('click', e => {
+  const tile = e.target.closest('[data-id]');
+  if (tile && window._results) {
+    window._selected = window._results.find(r => r.id === tile.dataset.id) || window._selected;
+    window.renderAll && window.renderAll(false);
+  }
+});
+</script>
 </body>
 </html>

@@ -602,6 +602,9 @@ function getHistorySeries(indexId, days=1) {
 // ─── State ────────────────────────────────────────────────────────────────────
 let results  = demoData.indices.map(i => window.IndexBiasEngine.calculateIndexBias(i));
 let selected = results[0];
+// Expose globally for tab navigation
+window._results  = results;
+window._selected = selected;
 
 // ─── Render helpers ───────────────────────────────────────────────────────────
 const modeClass = bias => bias.includes('LONG') ? 'bull' : bias.includes('SHORT') ? 'bear' : 'neutral';
@@ -909,21 +912,50 @@ function renderHistoryPanel() {
 }
 
 // ─── renderAll ────────────────────────────────────────────────────────────────
+// ─── Render: Stocks tabs ──────────────────────────────────────────────────────
+function renderStocksTabs() {
+  const el = document.getElementById('stocksTabs');
+  if (!el) return;
+  el.innerHTML = results.map(r =>
+    `<button class="chart-tab ${r.id===selected.id?'active':''}" data-id="${r.id}">${r.id}</button>`
+  ).join('');
+  el.querySelectorAll('.chart-tab').forEach(b =>
+    b.addEventListener('click', () => { selected = results.find(r=>r.id===b.dataset.id)||selected; renderAll(false); })
+  );
+}
+
+// ─── Render: Trade Plan Full (for trade plan tab) ─────────────────────────────
+function renderTradePlanFull() {
+  const el = document.getElementById('tradePlanFull');
+  if (el) el.innerHTML = document.getElementById('tradePlan')?.innerHTML || '';
+}
+
 function renderAll(updateTime=true) {
   if (updateTime) demoData.lastUpdate = new Date().toLocaleTimeString('cs-CZ');
-  document.getElementById('lastUpdate').textContent = `Last update ${demoData.lastUpdate}`;
+  document.getElementById('lastUpdate').textContent = demoData.lastUpdate;
+  // Sync global state for tab navigation
+  window._results  = results;
+  window._selected = selected;
+  // Update labels
+  const pLabel = document.getElementById('planIndexLabel');
+  const sLabel = document.getElementById('flowIndexLabel');
+  if (pLabel) pLabel.textContent = selected.id;
+  if (sLabel) sLabel.textContent = selected.id;
   renderFreezeBanner();
   renderPrimary();
-  renderIndexCards();
+  renderIndexBar();
   renderPremarketCommand();
   renderBreakdown();
   renderFlowChart();
+  renderStocksTabs();
   renderStocks();
   renderTradePlan();
+  renderTradePlanFull();
   renderFundamentals();
   renderWeekly();
   renderHistoryPanel();
 }
+window.renderAll = renderAll;
 
 // ─── Event Listeners ──────────────────────────────────────────────────────────
 document.getElementById('refreshBtn').addEventListener('click', async () => {
